@@ -383,25 +383,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Author
-
-**cumulus13**
-
-- GitHub: [@cumulus13](https://github.com/cumulus13)
-
-## Changelog
-
-### Version 1.0.0 (2025-01-XX)
-
-- Initial release
-- Auto-detection of version files
-- Support for multiple version file formats
-- Version manipulation (increment/decrement)
-- Suffix support (alpha, beta, dev)
-- Command-line interface
-- Python API
-- Comprehensive documentation
-
 ## Support
 
 If you encounter any issues or have questions:
@@ -414,3 +395,13 @@ If you encounter any issues or have questions:
 
 - Inspired by semantic versioning best practices
 - Built with Python's standard library for zero dependencies
+
+## 👤 Author
+[Hadi Cahyadi](mailto:cumulus13@gmail.com)
+    
+
+[![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/cumulus13)
+
+[![Donate via Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/cumulus13)
+ 
+[Support me on Patreon](https://www.patreon.com/cumulus13)
