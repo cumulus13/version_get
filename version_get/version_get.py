@@ -13,6 +13,11 @@ URL: https://github.com/cumulus13/version_get
 """
 
 import os
+from richcolorlog import setup_logging
+os.environ.update({'NO_LOGGING':'1'})
+
+logger = setup_logging()
+
 import re
 import sys
 import inspect
@@ -59,7 +64,7 @@ class VersionGet:
         r'^([0-9]+\.[0-9]+\.[0-9]+(?:[a-zA-Z][a-zA-Z0-9]*)?)\s*$',
     ]
     
-    def __init__(self, path: Optional[str] = None, create_if_missing: bool = False):
+    def __init__(self, path: Optional[str] = None, create_if_missing: bool = False, auto_reload: bool = False, debug = False):
         """
         Initialize VersionGet instance.
         
@@ -68,6 +73,11 @@ class VersionGet:
                   If None, uses current directory or caller's directory.
             create_if_missing: If True, creates __version__.py with default version if not found.
         """
+
+        if debug:
+            os.environ.update({'LOGGING':'1'})
+            os.environ.pop('NO_LOGGING')
+        self.auto_reload = auto_reload
         self.path = self._resolve_path(path)
         self.version_file = None
         self.version = "1.0.0"
@@ -87,37 +97,53 @@ class VersionGet:
         """
         if path:
             p = Path(path).resolve()
-            if p.is_file():
+            is_file = p.is_file()
+            
+            logger.debug(f"path (p) = {p}, is_file = {is_file}")
+
+            if is_file:
                 return p.parent
             return p
         
         # Try current directory first
         cwd = Path.cwd()
+        logger.info(f"cwd: {cwd}")
         if self._has_version_file(cwd):
+            logger.debug(f"self._has_version_file(cwd): {self._has_version_file(cwd)}")
             return cwd
         
         # Try caller's directory using inspect
         try:
             frame = inspect.stack()[2]
+            logger.info(f"frame: {frame}")
             caller_file = frame.filename
+            logger.info(f"caller_file: {caller_file}")
             caller_dir = Path(caller_file).parent.resolve()
+            logger.info(f"caller_dir: {caller_dir}")
+
             if self._has_version_file(caller_dir):
+                logger.debug(f"self._has_version_file(caller_dir): {self._has_version_file(caller_dir)}")
                 return caller_dir
         except (IndexError, AttributeError):
-            pass
+            logger.error(traceback.format_exc())
         
         # Try parent of current directory
         parent = cwd.parent
+        logger.info(f"parent: {parent}")
         if self._has_version_file(parent):
+            logger.debug(f"self._has_version_file(parent): {self._has_version_file(parent)}")
             return parent
         
         # Default to current directory
+        logger.notice(f"cwd: {cwd}")
+
         return cwd
     
     def _has_version_file(self, directory: Path) -> bool:
         """Check if directory contains any version file."""
         for filename in self.VERSION_FILES:
             if (directory / filename).exists():
+                logger.debug(f"(directory / filename): {str(directory / filename)}")
                 return True
         return False
     
@@ -130,6 +156,7 @@ class VersionGet:
         """
         for filename in self.VERSION_FILES:
             filepath = self.path / filename
+            logger.debug(f"filepath: {filepath}, is_exists: {filepath.exists()}")
             if filepath.exists():
                 return filepath
         return None
@@ -146,6 +173,7 @@ class VersionGet:
         """
         for pattern in self.VERSION_PATTERNS:
             match = re.search(pattern, content, re.MULTILINE | re.IGNORECASE)
+            logger.debug(f"match: {match}")
             if match:
                 return match.group(1)
         return None
@@ -153,6 +181,7 @@ class VersionGet:
     def _find_and_load_version(self) -> None:
         """Find and load version from file."""
         self.version_file = self._find_version_file()
+        logger.debug(f"self.version_file: {self.version_file}")
         
         if self.version_file:
             try:
@@ -168,6 +197,9 @@ class VersionGet:
             except (IOError, UnicodeDecodeError) as e:
                 print(f"Warning: Could not read {self.version_file}: {e}", file=sys.stderr)
                 self.version = "1.0.0"
+                logger.error(f"ERROR: {e}")
+                if str(os.getenv('TRACEBACK', '0')).lower() in ['1', 'true', 'yes']:
+                    logger.error(traceback.format_exc())
         else:
             # No version file found
             if self.create_if_missing:
@@ -184,6 +216,9 @@ class VersionGet:
             print(f"Created version file: {version_file}")
         except IOError as e:
             print(f"Warning: Could not create version file: {e}", file=sys.stderr)
+            logger.error(f"ERROR: {e}")
+            if str(os.getenv('TRACEBACK', '0')).lower() in ['1', 'true', 'yes']:
+                logger.error(traceback.format_exc())
     
     def _parse_version_parts(self) -> Tuple[int, int, Union[int, str]]:
         """
@@ -194,6 +229,8 @@ class VersionGet:
         """
         # Match x.y.z or x.y.suffix
         match = re.match(r'^(\d+)\.(\d+)\.(.+)$', self.version)
+        logger.debug(f"match: {match}")
+
         if match:
             major = int(match.group(1))
             minor = int(match.group(2))
@@ -255,6 +292,9 @@ class VersionGet:
             
         except IOError as e:
             print(f"Error: Could not write to version file: {e}", file=sys.stderr)
+            logger.error(f"ERROR: {e}")
+            if str(os.getenv('TRACEBACK', '0')).lower() in ['1', 'true', 'yes']:
+                logger.error(traceback.format_exc())
             return False
     
     def get(self, from_file: bool = False) -> str:
@@ -269,6 +309,8 @@ class VersionGet:
         """
         if from_file:
             self.reload()
+        logger.notice(f"self.version: {self.version}")
+
         return self.version
     
     def reload(self) -> str:
@@ -280,6 +322,7 @@ class VersionGet:
             Current version string
         """
         self._find_and_load_version()
+        logger.notice(f"self.version: {self.version}")
         return self.version
     
     def increment_major(self, auto_reload: bool = True) -> str:
@@ -292,11 +335,12 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, _, _ = self._parse_version_parts()
         new_version = f"{major + 1}.0.0"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def increment_minor(self, auto_reload: bool = True) -> str:
@@ -309,11 +353,12 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, minor, _ = self._parse_version_parts()
         new_version = f"{major}.{minor + 1}.0"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def increment_patch(self, auto_reload: bool = True) -> str:
@@ -326,7 +371,7 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, minor, patch = self._parse_version_parts()
         if isinstance(patch, int):
@@ -335,6 +380,7 @@ class VersionGet:
             # If patch is a suffix, convert to numeric
             new_version = f"{major}.{minor}.1"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def decrement_major(self, auto_reload: bool = True) -> str:
@@ -347,12 +393,13 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, _, _ = self._parse_version_parts()
         new_major = max(0, major - 1)
         new_version = f"{new_major}.0.0"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def decrement_minor(self, auto_reload: bool = True) -> str:
@@ -365,12 +412,13 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, minor, _ = self._parse_version_parts()
         new_minor = max(0, minor - 1)
         new_version = f"{major}.{new_minor}.0"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def decrement_patch(self, auto_reload: bool = True) -> str:
@@ -383,7 +431,7 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, minor, patch = self._parse_version_parts()
         if isinstance(patch, int):
@@ -392,6 +440,7 @@ class VersionGet:
         else:
             new_version = f"{major}.{minor}.0"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def set_version(self, version: str, auto_reload: bool = False) -> str:
@@ -405,13 +454,14 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         # Validate version format
         if not re.match(r'^\d+\.\d+\.\w+$', version):
             print(f"Warning: Version '{version}' may not be in standard format", file=sys.stderr)
         
         self._write_version(version)
+        logger.notice(f"version: {version}")
         return version
     
     def set_suffix(self, suffix: str, auto_reload: bool = True) -> str:
@@ -425,11 +475,12 @@ class VersionGet:
         Returns:
             New version string
         """
-        if auto_reload:
+        if auto_reload or self.auto_reload:
             self.reload()
         major, minor, _ = self._parse_version_parts()
         new_version = f"{major}.{minor}.{suffix}"
         self._write_version(new_version)
+        logger.notice(f"new_version: {new_version}")
         return new_version
     
     def set_alpha(self) -> str:
@@ -492,34 +543,37 @@ Examples:
     parser.add_argument('-g', '--get', action='store_true',
                        help='Get current version (default action)')
     
+    parser.add_argument('-A', '--auto-reload', action='store_true',
+                        help='Set auto reload from file')
+
     # Increment operations
-    parser.add_argument('--increment-major', '--inc-major', action='store_true',
+    parser.add_argument('-im', '--increment-major', '--inc-major', action='store_true',
                        help='Increment major version (x.0.0)')
-    parser.add_argument('--increment-minor', '--inc-minor', action='store_true',
+    parser.add_argument('-in', '--increment-minor', '--inc-minor', action='store_true',
                        help='Increment minor version (x.y.0)')
-    parser.add_argument('--increment-patch', '--inc-patch', action='store_true',
+    parser.add_argument('-ip', '--increment-patch', '--inc-patch', action='store_true',
                        help='Increment patch version (x.y.z)')
-    parser.add_argument('--auto-add', action='store_true',
+    parser.add_argument('-a', '--auto-add', action='store_true',
                        help='Auto-increment patch version')
     
     # Decrement operations
-    parser.add_argument('--decrement-major', '--dec-major', action='store_true',
+    parser.add_argument('-dm', '--decrement-major', '--dec-major', action='store_true',
                        help='Decrement major version')
-    parser.add_argument('--decrement-minor', '--dec-minor', action='store_true',
+    parser.add_argument('-dn', '--decrement-minor', '--dec-minor', action='store_true',
                        help='Decrement minor version')
-    parser.add_argument('--decrement-patch', '--dec-patch', action='store_true',
+    parser.add_argument('-dp', '--decrement-patch', '--dec-patch', action='store_true',
                        help='Decrement patch version')
     
     # Set operations
     parser.add_argument('-s', '--set', metavar='VERSION',
                        help='Set specific version (e.g., 2.0.0)')
-    parser.add_argument('--set-alpha', action='store_true',
+    parser.add_argument('-sa', '--set-alpha', action='store_true',
                        help='Set version to x.y.alpha')
-    parser.add_argument('--set-beta', action='store_true',
+    parser.add_argument('-sb', '--set-beta', action='store_true',
                        help='Set version to x.y.beta')
-    parser.add_argument('--set-dev', action='store_true',
+    parser.add_argument('-sd', '--set-dev', action='store_true',
                        help='Set version to x.y.dev')
-    parser.add_argument('--set-suffix', metavar='SUFFIX',
+    parser.add_argument('-sf', '--set-suffix', metavar='SUFFIX',
                        help='Set custom suffix (e.g., rc1, pre)')
     
     # Output options
@@ -529,9 +583,13 @@ Examples:
                        help='Verbose output')
     
     args = parser.parse_args()
+
+    if args.verbose:
+        os.environ.update({'LOGGING':'1'})
+        os.environ.pop('NO_LOGGING')
     
     try:
-        vg = VersionGet(path=args.path, create_if_missing=args.create)
+        vg = VersionGet(path=args.path, create_if_missing=args.create, auto_reload=args.auto_reload)
         
         action_taken = False
         

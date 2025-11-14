@@ -38,7 +38,7 @@ pip install -e .
 from version_get import VersionGet
 
 # Initialize (auto-detects version file)
-vg = VersionGet()
+vg = VersionGet() # or vg = VersionGet('/projects/myap')
 
 # Get current version
 print(vg.get())  # Output: 1.0.0
@@ -65,6 +65,55 @@ vg = VersionGet(path="/path/to/project")
 # Create version file if missing
 vg = VersionGet(create_if_missing=True)
 ```
+
+### Auto-reload
+```python
+vg = VersionGet()
+print(vg.get())  # 1.3.4
+
+# Edit manual file → 2.0.0
+
+vg.increment_patch()  # Auto reload → 2.0.0 → 2.0.1 ✓
+print(vg.get())       # 2.0.1
+```
+
+```python
+vg = VersionGet()
+print(vg.get())  # 1.3.4
+
+# Edit manual file → 2.0.0
+
+print(vg.get(True)) # 2.0.0
+```
+
+### Manual-reload
+```python
+vg = VersionGet()
+print(vg.get())  # 1.3.4
+
+# Edit manual file → 2.0.0
+
+vg.reload()      # Reload dari file
+print(vg.get())  # 2.0.0 ✓
+```
+
+### Get from file directly
+
+one-time check
+
+```python
+vg = VersionGet()
+print(vg.get())  # 1.3.4 (from memory)
+
+# Edit manual file → 2.0.0
+
+print(vg.get(from_file=True))  # 2.0.0 ✓ (langsung dari file)
+print(vg.get())                # 2.0.0 (updated memory)
+```
+
+### Disable Auto-reload (Optional)
+```python
+vg.increment_patch(auto_reload=False)  # Just use memory``
 
 ### As a Command-Line Tool
 
