@@ -257,46 +257,77 @@ class VersionGet:
             print(f"Error: Could not write to version file: {e}", file=sys.stderr)
             return False
     
-    def get(self) -> str:
+    def get(self, from_file: bool = False) -> str:
         """
         Get current version string.
+        
+        Args:
+            from_file: If True, reload from file before returning version
         
         Returns:
             Version string
         """
+        if from_file:
+            self.reload()
         return self.version
     
-    def increment_major(self) -> str:
+    def reload(self) -> str:
+        """
+        Reload version from file.
+        Useful when file was edited externally.
+        
+        Returns:
+            Current version string
+        """
+        self._find_and_load_version()
+        return self.version
+    
+    def increment_major(self, auto_reload: bool = True) -> str:
         """
         Increment major version number (x.0.0).
+        
+        Args:
+            auto_reload: If True, reload from file before incrementing
         
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, _, _ = self._parse_version_parts()
         new_version = f"{major + 1}.0.0"
         self._write_version(new_version)
         return new_version
     
-    def increment_minor(self) -> str:
+    def increment_minor(self, auto_reload: bool = True) -> str:
         """
         Increment minor version number (x.y.0).
+        
+        Args:
+            auto_reload: If True, reload from file before incrementing
         
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, minor, _ = self._parse_version_parts()
         new_version = f"{major}.{minor + 1}.0"
         self._write_version(new_version)
         return new_version
     
-    def increment_patch(self) -> str:
+    def increment_patch(self, auto_reload: bool = True) -> str:
         """
         Increment patch/test number (x.y.z).
+        
+        Args:
+            auto_reload: If True, reload from file before incrementing
         
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, minor, patch = self._parse_version_parts()
         if isinstance(patch, int):
             new_version = f"{major}.{minor}.{patch + 1}"
@@ -306,39 +337,54 @@ class VersionGet:
         self._write_version(new_version)
         return new_version
     
-    def decrement_major(self) -> str:
+    def decrement_major(self, auto_reload: bool = True) -> str:
         """
         Decrement major version number (min 0).
+        
+        Args:
+            auto_reload: If True, reload from file before decrementing
         
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, _, _ = self._parse_version_parts()
         new_major = max(0, major - 1)
         new_version = f"{new_major}.0.0"
         self._write_version(new_version)
         return new_version
     
-    def decrement_minor(self) -> str:
+    def decrement_minor(self, auto_reload: bool = True) -> str:
         """
         Decrement minor version number (min 0).
+        
+        Args:
+            auto_reload: If True, reload from file before decrementing
         
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, minor, _ = self._parse_version_parts()
         new_minor = max(0, minor - 1)
         new_version = f"{major}.{new_minor}.0"
         self._write_version(new_version)
         return new_version
     
-    def decrement_patch(self) -> str:
+    def decrement_patch(self, auto_reload: bool = True) -> str:
         """
         Decrement patch/test number (min 0).
+        
+        Args:
+            auto_reload: If True, reload from file before decrementing
         
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, minor, patch = self._parse_version_parts()
         if isinstance(patch, int):
             new_patch = max(0, patch - 1)
@@ -348,16 +394,19 @@ class VersionGet:
         self._write_version(new_version)
         return new_version
     
-    def set_version(self, version: str) -> str:
+    def set_version(self, version: str, auto_reload: bool = False) -> str:
         """
         Set version to specific value.
         
         Args:
             version: Version string to set
+            auto_reload: If True, reload from file before setting (usually not needed)
             
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         # Validate version format
         if not re.match(r'^\d+\.\d+\.\w+$', version):
             print(f"Warning: Version '{version}' may not be in standard format", file=sys.stderr)
@@ -365,16 +414,19 @@ class VersionGet:
         self._write_version(version)
         return version
     
-    def set_suffix(self, suffix: str) -> str:
+    def set_suffix(self, suffix: str, auto_reload: bool = True) -> str:
         """
         Set version suffix (alpha, beta, dev, etc.).
         
         Args:
             suffix: Suffix to set
+            auto_reload: If True, reload from file before setting suffix
             
         Returns:
             New version string
         """
+        if auto_reload:
+            self.reload()
         major, minor, _ = self._parse_version_parts()
         new_version = f"{major}.{minor}.{suffix}"
         self._write_version(new_version)
@@ -392,15 +444,18 @@ class VersionGet:
         """Set version to dev. Returns: New version string"""
         return self.set_suffix('dev')
     
-    def auto_add(self) -> str:
+    def auto_add(self, auto_reload: bool = True) -> str:
         """
         Automatically increment patch version.
         Alias for increment_patch().
         
+        Args:
+            auto_reload: If True, reload from file before incrementing
+        
         Returns:
             New version string
         """
-        return self.increment_patch()
+        return self.increment_patch(auto_reload=auto_reload)
     
     def __str__(self) -> str:
         """String representation returns version."""
