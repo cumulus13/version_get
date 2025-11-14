@@ -27,18 +27,18 @@ def get_version() -> str:
                         Path(__file__).parent / NAME / "__version__.py"
                        ]
         for i in version_file:
-            if os.getenv('DEBUG'): print(f"i [0]: {i}, is_file: {i.is_file()}")
+            if os.getenv('SETUP_DEBUG'): print(f"i [0]: {i}, is_file: {i.is_file()}")
 
             if i.is_file():
                 with open(i, "r") as f:
                     for line in f:
-                        if os.getenv('DEBUG'): print(f"line [0]: {line}")
+                        if os.getenv('SETUP_DEBUG'): print(f"line [0]: {line}")
                         if line.strip().startswith("version"):
                             parts = line.split("=")
-                            if os.getenv('DEBUG'): print(f"parts [0]: {parts}, len_parts: {len(parts)}")
+                            if os.getenv('SETUP_DEBUG'): print(f"parts [0]: {parts}, len_parts: {len(parts)}")
                             if len(parts) == 2:
                                 data = parts[1].strip().strip('"').strip("'")
-                                if os.getenv('DEBUG'): print(f"data [0]: {data}")
+                                if os.getenv('SETUP_DEBUG'): print(f"data [0]: {data}")
                                 return data
                 break
     except:
@@ -88,7 +88,6 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
