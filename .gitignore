@@ -19,3 +19,6 @@ backup/
 
 # Added entries (1 items)
 *.sublime*
+
+# Added entries (1 items)
+*.ini

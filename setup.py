@@ -8,21 +8,41 @@ Setup script for version_get
 from setuptools import setup, find_packages
 import os
 import re
+import shutil
+import traceback
+
+NAME = 'version_get'
+
+try:
+    shutil.copy2('__version__.py', str(Path(__file__).parent / NAME / "__version__.py"))
+except:
+    pass
 
 def get_version() -> str:
     """Get version from __version__.py file"""
     from pathlib import Path
     try:
-        version_file = Path(__file__).parent / "__version__.py"
-        if version_file.is_file():
-            with open(version_file, "r") as f:
-                for line in f:
-                    if line.strip().startswith("version"):
-                        parts = line.split("=")
-                        if len(parts) == 2:
-                            return parts[1].strip().strip('"').strip("'")
+        version_file = [
+                        Path(__file__).parent / "__version__.py",
+                        Path(__file__).parent / NAME / "__version__.py"
+                       ]
+        for i in version_file:
+            if os.getenv('DEBUG'): print(f"i [0]: {i}, is_file: {i.is_file()}")
+
+            if i.is_file():
+                with open(i, "r") as f:
+                    for line in f:
+                        if os.getenv('DEBUG'): print(f"line [0]: {line}")
+                        if line.strip().startswith("version"):
+                            parts = line.split("=")
+                            if os.getenv('DEBUG'): print(f"parts [0]: {parts}, len_parts: {len(parts)}")
+                            if len(parts) == 2:
+                                data = parts[1].strip().strip('"').strip("'")
+                                if os.getenv('DEBUG'): print(f"data [0]: {data}")
+                                return data
+                break
     except:
-        pass
+        traceback.print_exc()
     return "2.0.0"
 
 def get_long_description():
@@ -33,9 +53,13 @@ def get_long_description():
             return f.read()
     return ""
 
+VERSION = get_version()
+print(f"NAME   : {NAME}")
+print(f"VERSION: {VERSION}")
+
 setup(
-    name='version_get',
-    version=get_version(),
+    name=NAME,
+    version=VERSION,
     description='A robust version management utility for Python projects',
     long_description=get_long_description(),
     long_description_content_type='text/markdown',

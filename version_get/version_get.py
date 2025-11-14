@@ -29,7 +29,34 @@ except:
 from pathlib import Path
 from typing import Optional, Tuple, Union, List
 
-__version__ = "1.0.0"
+def get_version() -> str:
+    """Get version from __version__.py file"""
+    from pathlib import Path
+    try:
+        version_file = [
+                        Path(__file__).parent / "__version__.py",
+                        Path(__file__).parent / NAME / "__version__.py"
+                       ]
+        for i in version_file:
+            if os.getenv('DEBUG'): print(f"i [1]: {i}, is_file: {i.is_file()}")
+
+            if i.is_file():
+                with open(i, "r") as f:
+                    for line in f:
+                        if os.getenv('DEBUG'): print(f"line [1]: {line}")
+                        if line.strip().startswith("version"):
+                            parts = line.split("=")
+                            if os.getenv('DEBUG'): print(f"parts [1]: {parts}, len_parts: {len(parts)}")
+                            if len(parts) == 2:
+                                data = parts[1].strip().strip('"').strip("'")
+                                if os.getenv('DEBUG'): print(f"data [1]: {data}")
+                                return data
+                break
+    except:
+        traceback.print_exc()
+    return "2.0.0"
+
+__version__ = get_version()
 
 class VersionGet:
     """
