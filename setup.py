@@ -9,16 +9,21 @@ from setuptools import setup, find_packages
 import os
 import re
 
-def get_version():
-    """Get version from __version__.py"""
-    version_file = os.path.join(os.path.dirname(__file__), '__version__.py')
-    if os.path.exists(version_file):
-        with open(version_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-            match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-            if match:
-                return match.group(1)
-    return "1.0.0"
+def get_version() -> str:
+    """Get version from __version__.py file"""
+    from pathlib import Path
+    try:
+        version_file = Path(__file__).parent / "__version__.py"
+        if version_file.is_file():
+            with open(version_file, "r") as f:
+                for line in f:
+                    if line.strip().startswith("version"):
+                        parts = line.split("=")
+                        if len(parts) == 2:
+                            return parts[1].strip().strip('"').strip("'")
+    except:
+        pass
+    return "2.0.0"
 
 def get_long_description():
     """Get long description from README"""
