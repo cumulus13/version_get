@@ -22,6 +22,7 @@ import re
 import sys
 import inspect
 import argparse
+import traceback
 try:
     from licface import CustomRichHelpFormatter
 except:
