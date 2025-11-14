@@ -33,6 +33,7 @@ from typing import Optional, Tuple, Union, List
 def get_version() -> str:
     """Get version from __version__.py file"""
     from pathlib import Path
+    NAME = 'version_get'
     try:
         version_file = [
                         Path(__file__).parent / "__version__.py",
