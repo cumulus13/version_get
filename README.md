@@ -59,6 +59,9 @@ vg.set_dev()    # 3.0.dev
 # Custom suffix
 vg.set_suffix("rc1")  # 3.0.rc1
 
+# Default path is parent directory but
+# if version file is not exist then return to current directory
+
 # Specify path
 vg = VersionGet(path="/path/to/project")
 
