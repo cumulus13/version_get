@@ -82,6 +82,7 @@ setup(
     entry_points={
         'console_scripts': [
             'version_get=version_get.version_get:main',
+            'version-get=version_get.version_get:main',
             'vget=version_get.version_get:main',
         ],
     },
