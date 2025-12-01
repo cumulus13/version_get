@@ -13,16 +13,108 @@ URL: https://github.com/cumulus13/version_get
 """
 
 import os
-from richcolorlog import setup_logging
-os.environ.update({'NO_LOGGING':'1'})
+import sys
+import traceback
 
-logger = setup_logging()
+if len(sys.argv) > 1 and any('--debug' == arg for arg in sys.argv):
+    print("🐞 Debug mode enabled")
+    os.environ["DEBUG"] = "1"
+    os.environ['LOGGING'] = "1"
+    os.environ.pop('NO_LOGGING', None)
+    os.environ['TRACEBACK'] = "1"
+    os.environ["LOGGING"] = "1"
+else:
+    os.environ['NO_LOGGING'] = "1"
+
+try:
+    from richcolorlog import setup_logging  # type: ignore
+    logger = setup_logging()
+except:    
+    import logging
+
+    # ============================================================
+    # 1. LEVEL DEFINITION (Syslog + Extra)
+    # ============================================================
+
+    CUSTOM_LOG_LEVELS = {
+        # Syslog RFC5424 severity (0 = highest severity)
+        # We map to the top of the Python logging range (10–60)
+        "EMERGENCY": 60,   # System unusable
+        "ALERT":     55,   # Immediate action required
+        "CRITICAL":  logging.CRITICAL,  # 50
+        "ERROR":     logging.ERROR,     # 40
+        "WARNING":   logging.WARNING,   # 30
+        "NOTICE":    25,   # Normal but significant condition
+        "INFO":      logging.INFO,      # 20
+        "DEBUG":     logging.DEBUG,     # 10
+
+        # Custom level tambahan
+        "SUCCESS":   22,   # Operation successful
+        "FATAL":     65,   # Hard failure beyond CRITICAL
+    }
+
+    # ============================================================
+    # 2. LEVEL REGISTRATION TO LOGGING
+    # ============================================================
+
+    def register_custom_levels():
+        for level_name, level_value in CUSTOM_LOG_LEVELS.items():
+            # Register for Python logging
+            logging.addLevelName(level_value, level_name)
+
+            # Tambah method ke logging.Logger
+            def log_for(level):
+                def _log_method(self, message, *args, **kwargs):
+                    if self.isEnabledFor(level):
+                        self._log(level, message, args, **kwargs)
+                return _log_method
+
+            # buat method lowercase: logger.emergency(), logger.notice(), dll
+            setattr(logging.Logger, level_name.lower(), log_for(level_value))
+
+
+    register_custom_levels()
+
+    # ============================================================
+    # 3. FORMATTER DETAIL & PROFESSIONAL
+    # ============================================================
+
+    DEFAULT_FORMAT = (
+        "[%(asctime)s] "
+        "%(levelname)-10s "
+        "%(name)s: "
+        "%(message)s"
+    )
+
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+    def get_default_handler():
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(DEFAULT_FORMAT, DATE_FORMAT)
+        handler.setFormatter(formatter)
+        return handler
+
+
+    # ============================================================
+    # 4. FUNCTION TO GET THE LOGGER THAT IS READY
+    # ============================================================
+
+    def get_logger(name="default", level=logging.DEBUG):
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+
+        if not logger.handlers:  # Hindari duplicate handler
+            logger.addHandler(get_default_handler())
+
+        return logger
+    
+    logger = get_logger('version_get', level=logging.INFO)
 
 import re
-import sys
 import inspect
 import argparse
-import traceback
+
 try:
     from licface import CustomRichHelpFormatter
 except:
