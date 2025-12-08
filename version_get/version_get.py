@@ -203,7 +203,7 @@ class VersionGet:
         self.auto_reload = auto_reload
         self.path = self._resolve_path(path)
         self.version_file = None
-        self.version = "1.0.0"
+        self.version = "0.0.1"
         self.create_if_missing = create_if_missing
         
         self._find_and_load_version()
