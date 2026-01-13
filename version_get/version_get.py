@@ -16,19 +16,23 @@ import os
 import sys
 import traceback
 
-if len(sys.argv) > 1 and any('--debug' == arg for arg in sys.argv):
+LOG_LEVEL = os.getenv('LOG_LEVEL', 1000)
+SHOW_LOG = False
+if len(sys.argv) > 1 and '--debug' in sys.argv[1:]:
     print("🐞 Debug mode enabled")
-    os.environ["DEBUG"] = "1"
+    # os.environ["DEBUG"] = "1"
     os.environ['LOGGING'] = "1"
     os.environ.pop('NO_LOGGING', None)
     os.environ['TRACEBACK'] = "1"
     os.environ["LOGGING"] = "1"
+    LOG_LEVEL = "DEBUG"
+    SHOW_LOG = True
 else:
     os.environ['NO_LOGGING'] = "1"
 
 try:
     from richcolorlog import setup_logging  # type: ignore
-    logger = setup_logging()
+    logger = setup_logging('version_get', level = LOG_LEVEL, show=SHOW_LOG)
 except:    
     import logging
 
@@ -109,7 +113,7 @@ except:
 
         return logger
     
-    logger = get_logger('version_get', level=logging.INFO)
+    logger = get_logger('version_get', level=LOG_LEVEL)  # type: ignore
 
 import re
 import inspect
